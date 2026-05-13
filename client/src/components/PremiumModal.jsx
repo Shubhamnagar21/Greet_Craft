@@ -1,0 +1,85 @@
+import { useState } from 'react';
+import { HiX, HiCheck } from 'react-icons/hi';
+import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
+import toast from 'react-hot-toast';
+
+const plans = [
+  { id: 'monthly', label: 'Monthly', price: '₹99', period: '/mo' },
+  { id: 'yearly', label: 'Yearly', price: '₹799', period: '/yr', tag: 'Best value' },
+  { id: 'lifetime', label: 'Lifetime', price: '₹1,499', period: 'once' },
+];
+
+const perks = ['All premium templates', 'HD downloads', 'No watermarks', 'New templates first', 'Ad-free experience'];
+
+export default function PremiumModal({ isOpen, onClose }) {
+  const { updateUser } = useAuth();
+  const [selected, setSelected] = useState('yearly');
+  const [loading, setLoading] = useState(false);
+
+  if (!isOpen) return null;
+
+  const handleUpgrade = async () => {
+    setLoading(true);
+    try {
+      await api.post('/subscription/upgrade', { plan: selected });
+      updateUser({ subscriptionStatus: 'premium' });
+      toast.success('Welcome to Premium! 🎉');
+      onClose();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Upgrade failed');
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} />
+      <div onClick={(e) => e.stopPropagation()} className="fade-in"
+        style={{ position: 'relative', width: '100%', maxWidth: 420, background: 'white', borderRadius: 16, padding: 28 }}>
+
+        <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', color: '#9ca3af' }}>
+          <HiX size={20} />
+        </button>
+
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <span style={{ fontSize: 32 }}>⭐</span>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#111827', marginTop: 8 }}>Unlock Premium</h2>
+          <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>Access all templates and features</p>
+        </div>
+
+        {/* Plans */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 20 }}>
+          {plans.map((p) => (
+            <button key={p.id} onClick={() => setSelected(p.id)}
+              style={{
+                padding: 12, borderRadius: 12, textAlign: 'center', border: '2px solid',
+                borderColor: selected === p.id ? '#4f46e5' : '#e5e7eb',
+                background: selected === p.id ? '#eef2ff' : 'white',
+                cursor: 'pointer', position: 'relative',
+              }}>
+              {p.tag && <span style={{ position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)', background: '#4f46e5', color: 'white', fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 100 }}>{p.tag}</span>}
+              <p style={{ fontSize: 12, color: '#6b7280' }}>{p.label}</p>
+              <p style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: '4px 0 2px' }}>{p.price}</p>
+              <p style={{ fontSize: 11, color: '#9ca3af' }}>{p.period}</p>
+            </button>
+          ))}
+        </div>
+
+        {/* Perks */}
+        <div style={{ marginBottom: 20 }}>
+          {perks.map((p) => (
+            <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0' }}>
+              <HiCheck style={{ color: '#10b981', flexShrink: 0 }} />
+              <span style={{ fontSize: 13, color: '#374151' }}>{p}</span>
+            </div>
+          ))}
+        </div>
+
+        <button onClick={handleUpgrade} disabled={loading} className="btn btn-primary" style={{ width: '100%' }}>
+          {loading ? 'Processing...' : 'Upgrade now'}
+        </button>
+        <p style={{ textAlign: 'center', fontSize: 11, color: '#9ca3af', marginTop: 10 }}>Simulated payment · Cancel anytime</p>
+      </div>
+    </div>
+  );
+}
